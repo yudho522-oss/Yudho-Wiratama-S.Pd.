@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jurnal Belajar Guru AI - Yudho Wiratama, S.Pd.</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2pdf.js for PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- docx library for DOCX Export -->
+  <script src="https://unpkg.com/docx@8.2.2/build/index.umd.js"></script>
+  <!-- FileSaver for DOCX download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .text-justify-custom {
+      text-align: justify;
+      text-justify: inter-word;
+      line-height: 1.75;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #export-preview, #export-preview * {
+        visibility: visible;
+      }
+      #export-preview {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header Section -->
+  <header class="bg-gradient-to-r from-emerald-800 to-teal-700 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+          <i data-lucide="book-open-check" class="w-6 h-6 text-emerald-300"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight leading-none">Jurnal Belajar Guru AI</h1>
+          <p class="text-xs text-emerald-100 mt-0.5">Aplikasi dibuat oleh: <span class="font-semibold text-amber-300">Yudho Wiratama, S.Pd.</span></p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="openApiKeyModal()" class="text-xs sm:text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-md transition flex items-center space-x-1.5 border border-white/20">
+          <i data-lucide="key" class="w-4 h-4 text-amber-300"></i>
+          <span class="hidden sm:inline">Set API Key</span>
+        </button>
+        <button onclick="loadPresetSample()" class="text-xs sm:text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-md transition flex items-center space-x-1.5 border border-white/20">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+          <span class="hidden sm:inline">Isi Contoh</span>
+          <span class="sm:hidden">Contoh</span>
+        </button>
+        <button onclick="createNewJournal()" class="text-xs sm:text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-md font-medium transition shadow-sm flex items-center space-x-1.5">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Jurnal Baru</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: Input Form & Settings (5 Cols) -->
+    <section class="lg:col-span-5 space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-5">
+        <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+          <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+            <i data-lucide="edit-3" class="w-5 h-5 text-emerald-600"></i>
+            Detail & Poin Kunci Pembelajaran
+          </h2>
+          <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-medium border border-emerald-200">
+            Form Utama
+          </span>
+        </div>
+
+        <form id="journal-form" class="space-y-4" onsubmit="event.preventDefault();">
+          
+          <!-- Informasi Identitas Sekolah & Guru -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Guru</label>
+              <input type="text" id="teacherName" placeholder="Contoh: Yudho Wiratama, S.Pd." class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Sekolah</label>
+              <input type="text" id="schoolName" placeholder="Contoh: SD NEGERI 1 GANTUNG" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
+            </div>
+          </div>
+
+          <!-- Informasi Konteks KBM -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Kelas / Mata Pelajaran <span class="text-red-500">*</span></label>
+              <input type="text" id="subjectClass" required placeholder="Contoh: Kelas IV / IPAS" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Hari / Tanggal KBM <span class="text-red-500">*</span></label>
+              <input type="date" id="journalDate" required class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Waktu Pelaksanaan / Jam Ke- <span class="text-red-500">*</span></label>
+              <input type="text" id="timeSlot" required placeholder="Contoh: 07.30 - 09.00 (Jam ke 1-2)" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Materi / Topik Pembelajaran <span class="text-red-500">*</span></label>
+              <input type="text" id="topic" required placeholder="Contoh: Fotosintesis & Reaksi Terang" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition">
+            </div>
+          </div>
+
+          <!-- KUNCI TULISAN / BULLET POINTS -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                Poin Utama Pembelajaran & Refleksi
+                <span class="text-red-500">*</span>
+              </label>
+              <span class="text-[11px] text-slate-500 italic">Poin ringkas KBM</span>
+            </div>
+            <textarea id="keyNotes" required rows="3" placeholder="- Metode: Eksperimen pengamatan daun & diskusi kelompok&#10;- Hasil: Siswa antusias dan 90% memahami konsep utama&#10;- Catatan umum: Pembelajaran berlangsung kondusif dan lancar" class="w-full text-sm p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition leading-relaxed"></textarea>
+          </div>
+
+          <!-- INPUT KHUSUS KENDALA & SOLUSI KHUSUS AI -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                Catatan Kendala & Solusi (Garis Besar)
+              </label>
+              <span class="text-[11px] text-emerald-600 font-medium">Diolah AI jadi Narasi Baku</span>
+            </div>
+            <textarea id="challengeInput" rows="3" placeholder="Contoh ketikan singkat:&#10;- Kendala: Ada 3 siswa pasif dan bingung pakai alat titrasi lugol&#10;- Solusi: Guru bimbing kelompok secara langsung dan berikan peran khusus" class="w-full text-sm p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition leading-relaxed bg-amber-50/30"></textarea>
+          </div>
+
+          <!-- UPLOAD FOTO KEGIATAN -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Foto Kegiatan KBM (Opsional)</label>
+            <div class="flex items-center gap-3">
+              <label class="flex-1 cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg p-3 hover:bg-slate-50 transition bg-slate-50/50">
+                <i data-lucide="camera" class="w-6 h-6 text-slate-400 mb-1"></i>
+                <span class="text-xs text-slate-600 font-medium">Unggah Foto Dokumentasi</span>
+                <span class="text-[10px] text-slate-400 mt-0.5">Format JPG, PNG (Maks 5MB)</span>
+                <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+              </label>
+            </div>
+
+            <!-- Preview Image Box -->
+            <div id="photoPreviewContainer" class="hidden mt-3 relative bg-slate-100 rounded-lg p-2 border border-slate-200">
+              <div class="relative group rounded-md overflow-hidden max-h-48 bg-black/5 flex items-center justify-center">
+                <img id="photoPreview" src="" alt="Preview Dokumentasi" class="object-cover max-h-48 w-full rounded">
+                <button onclick="removePhoto()" type="button" class="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full hover:bg-red-700 shadow transition">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <input type="text" id="photoCaption" placeholder="Keterangan foto (misal: Siswa sedang berdiskusi kelompok)" class="w-full mt-2 text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white outline-none focus:ring-1 focus:ring-emerald-500">
+            </div>
+          </div>
+
+          <!-- TOMBOL GENERATE -->
+          <div class="pt-2">
+            <button type="button" onclick="generateAIJournal()" id="btnGenerate" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2 text-sm">
+              <i data-lucide="wand-2" class="w-5 h-5 text-amber-300"></i>
+              <span>Buat Jurnal Otomatis dengan AI</span>
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Saved History List -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="history" class="w-4 h-4 text-emerald-600"></i>
+            Riwayat Jurnal Tersimpan
+          </h3>
+          <span id="historyCount" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0</span>
+        </div>
+        <div id="historyList" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar text-xs">
+          <p class="text-slate-400 italic text-center py-4">Belum ada jurnal tersimpan.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: Generated Output & Editor (7 Cols) -->
+    <section class="lg:col-span-7 space-y-4 flex flex-col">
+      
+      <!-- Action Toolbar -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-2">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">
+            <i data-lucide="file-check-2" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i>
+            Pratinjau Dokumen Refleksi
+          </span>
+          <span class="text-xs text-slate-400 hidden sm:inline">| Langsung dapat diedit</span>
+        </div>
+        <div class="flex items-center space-x-2 flex-wrap">
+          <button onclick="saveJournalToStorage()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium transition flex items-center space-x-1">
+            <i data-lucide="save" class="w-3.5 h-3.5"></i>
+            <span>Simpan</span>
+          </button>
+          <button onclick="exportToWord()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium shadow-sm transition flex items-center space-x-1">
+            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+            <span>Unduh DOCX</span>
+          </button>
+          <button onclick="exportToPDF()" class="text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg font-medium shadow-sm transition flex items-center space-x-1">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Unduh PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State Overlay -->
+      <div id="loadingOverlay" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center space-y-4">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
+        <div class="space-y-1">
+          <h4 class="text-base font-semibold text-slate-800">Menyusun Narasi Jurnal Pedagogis...</h4>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto">AI sedang mengolah poin-poin kunci dan kendala menjadi kalimat naratif yang baku, mengalir, dan rapi rata kiri-kanan.</p>
+        </div>
+      </div>
+
+      <!-- EDITABLE JOURNAL DOCUMENT PREVIEW -->
+      <div id="journalContainer" class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 p-6 sm:p-8 overflow-y-auto custom-scrollbar relative">
+        
+        <!-- Document Content wrapper (This part will be printed/exported) -->
+        <div id="export-preview" class="space-y-6 text-slate-800">
+          
+          <!-- Clean Centered Document Header (NO LOGO) -->
+          <div class="border-b-2 border-slate-800 pb-4 text-center">
+            <h2 id="outSchool" contenteditable="true" class="text-base sm:text-xl font-bold uppercase tracking-wide text-slate-900 outline-none focus:bg-amber-50 rounded px-1">SD NEGERI 1 GANTUNG</h2>
+            <p class="text-xs sm:text-sm text-slate-700 font-semibold">JURNAL REFLEKSI DAN CATATAN HARIAN PEMBELAJARAN GURU</p>
+            <p class="text-[11px] text-slate-500 italic mt-0.5">Aplikasi dibuat oleh: Yudho Wiratama, S.Pd.</p>
+          </div>
+
+          <!-- Metadata Grid -->
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 bg-slate-50 p-3.5 rounded-lg border border-slate-200 text-xs">
+            <div><span class="font-semibold text-slate-500">Nama Guru:</span> <span id="outTeacher" contenteditable="true" class="font-bold text-slate-800 outline-none focus:bg-amber-50 rounded px-1">Yudho Wiratama, S.Pd.</span></div>
+            <div><span class="font-semibold text-slate-500">Tanggal KBM:</span> <span id="outDate" contenteditable="true" class="font-bold text-slate-800 outline-none focus:bg-amber-50 rounded px-1">-</span></div>
+            <div><span class="font-semibold text-slate-500">Kelas / Mapel:</span> <span id="outSubjectClass" contenteditable="true" class="font-bold text-slate-800 outline-none focus:bg-amber-50 rounded px-1">-</span></div>
+            <div><span class="font-semibold text-slate-500">Waktu Pelaksanaan:</span> <span id="outTimeSlot" contenteditable="true" class="font-bold text-slate-800 outline-none focus:bg-amber-50 rounded px-1">-</span></div>
+            <div class="col-span-2 border-t border-slate-200 pt-1.5 mt-1"><span class="font-semibold text-slate-500">Materi / Topik:</span> <span id="outTopic" contenteditable="true" class="font-bold text-slate-900 outline-none focus:bg-amber-50 rounded px-1">-</span></div>
+          </div>
+
+          <!-- Section 1: Ringkasan Aktivitas -->
+          <div class="space-y-1.5">
+            <h3 class="text-sm font-bold text-emerald-800 border-b border-emerald-100 pb-1 flex items-center gap-1.5">
+              <span>1.</span> Ringkasan Aktivitas Pembelajaran
+            </h3>
+            <p id="outSummary" contenteditable="true" class="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify-custom outline-none focus:bg-amber-50 p-1 rounded">
+              Silakan isi formulir di sebelah kiri dan klik tombol "Buat Jurnal Otomatis dengan AI" untuk menghasilkan narasi pembelajaran lengkap.
+            </p>
+          </div>
+
+          <!-- Section 2: Refleksi & Evaluasi -->
+          <div class="space-y-1.5">
+            <h3 class="text-sm font-bold text-emerald-800 border-b border-emerald-100 pb-1 flex items-center gap-1.5">
+              <span>2.</span> Refleksi & Evaluasi Proses Belajar
+            </h3>
+            <p id="outReflection" contenteditable="true" class="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify-custom outline-none focus:bg-amber-50 p-1 rounded">
+              Hasil analisis ketercapaian tujuan pembelajaran, respon, serta dinamika partisipasi peserta didik akan ditampilkan secara terstruktur di sini.
+            </p>
+          </div>
+
+          <!-- Section 3: Kendala & Pemecahan Masalah -->
+          <div class="space-y-1.5">
+            <h3 class="text-sm font-bold text-emerald-800 border-b border-emerald-100 pb-1 flex items-center gap-1.5">
+              <span>3.</span> Kendala & Pemecahan Masalah
+            </h3>
+            <p id="outChallenges" contenteditable="true" class="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify-custom outline-none focus:bg-amber-50 p-1 rounded">
+              AI akan mengolah catatan kendala Anda menjadi paragraf naratif pedagogis baku, mengalir, serta menjelaskan pemecahan masalah/solusi spontan yang telah dilakukan secara profesional.
+            </p>
+          </div>
+
+          <!-- Section 4: Rencana Tindak Lanjut -->
+          <div class="space-y-1.5">
+            <h3 class="text-sm font-bold text-emerald-800 border-b border-emerald-100 pb-1 flex items-center gap-1.5">
+              <span>4.</span> Rencana Tindak Lanjut (RTL)
+            </h3>
+            <p id="outFollowUp" contenteditable="true" class="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify-custom outline-none focus:bg-amber-50 p-1 rounded">
+              Langkah terencana untuk penguatan, remedial, maupun perbaikan strategi pada pembelajaran berikutnya.
+            </p>
+          </div>
+
+          <!-- Section 5: Dokumentasi Foto (Conditional) -->
+          <div id="outPhotoSection" class="hidden space-y-2 pt-2 border-t border-slate-200">
+            <h3 class="text-sm font-bold text-emerald-800 flex items-center gap-1.5">
+              <span>5.</span> Dokumentasi Kegiatan Pembelajaran
+            </h3>
+            <div class="flex flex-col items-center justify-center p-2 border border-slate-200 rounded-lg bg-slate-50">
+              <img id="outPhoto" src="" alt="Dokumentasi KBM" class="max-h-64 rounded shadow-sm object-contain">
+              <p id="outCaption" contenteditable="true" class="text-xs text-slate-500 italic mt-2 text-center outline-none focus:bg-amber-50 rounded px-2">Dokumentasi Aktivitas KBM</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer Section -->
+  <footer class="bg-slate-100 border-t border-slate-200 py-3 text-center text-xs text-slate-500">
+    <p>© 2026 Aplikasi Jurnal Belajar Guru AI • Dibuat oleh <span class="font-semibold text-slate-700">Yudho Wiratama, S.Pd.</span></p>
+  </footer>
+
+  <!-- Modal API Key Settings -->
+  <div id="apiKeyModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i data-lucide="key" class="w-4 h-4 text-emerald-600"></i>
+          Pengaturan API Key Gemini
+        </h3>
+        <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Masukkan Gemini API Key pribadi Anda untuk mengaktifkan penyusunan narasi reflektif guru secara presisi dan otomatis.
+      </p>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="clearApiKey()" class="text-xs px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium">Hapus Key</button>
+        <button onclick="saveApiKey()" class="text-xs px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-sm">Simpan Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg transition-all transform translate-y-20 opacity-0 flex items-center space-x-2 z-50 text-sm">
+    <i id="toastIcon" data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+    <span id="toastMsg">Pesan notifikasi</span>
+  </div>
+
+  <!-- APPLICATION LOGIC JS -->
+  <script>
+    let currentPhotoBase64 = null;
+    let journalHistory = [];
+
+    // On Load Initializations
+    window.onload = function() {
+      lucide.createIcons();
+
+      // Set default date to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('journalDate').value = today;
+      updateOutputDate(today);
+
+      // Load history from localStorage
+      loadHistoryFromStorage();
+      
+      // Auto update output fields
+      document.getElementById('teacherName').addEventListener('input', (e) => {
+        document.getElementById('outTeacher').innerText = e.target.value || '-';
+      });
+
+      document.getElementById('schoolName').addEventListener('input', (e) => {
+        document.getElementById('outSchool').innerText = e.target.value || 'SD NEGERI 1 GANTUNG';
+      });
+
+      document.getElementById('subjectClass').addEventListener('input', (e) => {
+        document.getElementById('outSubjectClass').innerText = e.target.value || '-';
+      });
+
+      document.getElementById('timeSlot').addEventListener('input', (e) => {
+        document.getElementById('outTimeSlot').innerText = e.target.value || '-';
+      });
+
+      document.getElementById('topic').addEventListener('input', (e) => {
+        document.getElementById('outTopic').innerText = e.target.value || '-';
+      });
+
+      document.getElementById('journalDate').addEventListener('change', (e) => {
+        updateOutputDate(e.target.value);
+      });
+    };
+
+    function updateOutputDate(dateStr) {
+      if (!dateStr) return;
+      const d = new Date(dateStr);
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      const formatted = d.toLocaleDateString('id-ID', options);
+      document.getElementById('outDate').innerText = formatted;
+    }
+
+    // Photo Upload Handler
+    function handlePhotoUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          showToast('Ukuran file terlalu besar! Maksimal 5MB.', 'error');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          currentPhotoBase64 = e.target.result;
+          document.getElementById('photoPreview').src = currentPhotoBase64;
+          document.getElementById('photoPreviewContainer').classList.remove('hidden');
+          
+          document.getElementById('outPhoto').src = currentPhotoBase64;
+          document.getElementById('outPhotoSection').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function removePhoto() {
+      currentPhotoBase64 = null;
+      document.getElementById('photoInput').value = '';
+      document.getElementById('photoPreviewContainer').classList.add('hidden');
+      document.getElementById('outPhotoSection').classList.add('hidden');
+      document.getElementById('outPhoto').src = '';
+    }
+
+    // Modal API Key
+    function openApiKeyModal() {
+      const savedKey = localStorage.getItem('gemini_api_key') || '';
+      document.getElementById('apiKeyInput').value = savedKey;
+      const modal = document.getElementById('apiKeyModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (key) {
+        localStorage.setItem('gemini_api_key', key);
+        showToast('API Key tersimpan dengan aman!');
+      } else {
+        localStorage.removeItem('gemini_api_key');
+        showToast('API Key dihapus.', 'info');
+      }
+      closeApiKeyModal();
+    }
+
+    function clearApiKey() {
+      localStorage.removeItem('gemini_api_key');
+      document.getElementById('apiKeyInput').value = '';
+      showToast('API Key dihapus.', 'info');
+      closeApiKeyModal();
+    }
+
+    // Populate Preset Sample Data
+    function loadPresetSample() {
+      document.getElementById('teacherName').value = 'Yudho Wiratama, S.Pd.';
+      document.getElementById('schoolName').value = 'SD NEGERI 1 GANTUNG';
+      document.getElementById('subjectClass').value = 'Kelas IV / IPAS';
+      document.getElementById('timeSlot').value = '07.30 - 09.00 (Jam ke 1-2)';
+      document.getElementById('topic').value = 'Fotosintesis: Proses Tumbuhan Memasak Makanan';
+      document.getElementById('keyNotes').value = 
+        "- Pembelajaran berbasis eksperimen sederhana mengamati permukaan daun & reaksi fotosintesis\n" +
+        "- Siswa dibagi dalam 5 kelompok diskusi heterogen untuk menguji keberadaan amilum\n" +
+        "- Tingkat pemahaman dan antusiasme siswa sangat tinggi sepanjang kegiatan";
+
+      document.getElementById('challengeInput').value = 
+        "- Kendala: Ada 3 siswa kesulitan menggunakan penetes larutan dan beberapa kelompok terlalu lambat berdiskusi\n" +
+        "- Solusi: Guru memberikan bimbingan individual langsung pada tiap kelompok dan mengarahkan pembagian tugas antar anggota";
+
+      document.getElementById('teacherName').dispatchEvent(new Event('input'));
+      document.getElementById('schoolName').dispatchEvent(new Event('input'));
+      document.getElementById('subjectClass').dispatchEvent(new Event('input'));
+      document.getElementById('timeSlot').dispatchEvent(new Event('input'));
+      document.getElementById('topic').dispatchEvent(new Event('input'));
+
+      showToast('Preset contoh berhasil diisikan!');
+    }
+
+    // AI Generation Call using Gemini API
+    async function generateAIJournal() {
+      const subjectClass = document.getElementById('subjectClass').value.trim();
+      const timeSlot = document.getElementById('timeSlot').value.trim();
+      const topic = document.getElementById('topic').value.trim();
+      const keyNotes = document.getElementById('keyNotes').value.trim();
+      const challengeInput = document.getElementById('challengeInput').value.trim();
+      const photoCaption = document.getElementById('photoCaption').value.trim();
+
+      if (!subjectClass || !topic || !keyNotes || !timeSlot) {
+        showToast('Mohon lengkapi Kelas/Mapel, Waktu, Topik, dan Poin Utama!', 'error');
+        return;
+      }
+
+      if (currentPhotoBase64) {
+        document.getElementById('outCaption').innerText = photoCaption || 'Dokumentasi Aktivitas Pembelajaran di Kelas';
+      }
+
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      loadingOverlay.classList.remove('hidden');
+      
+      const btnGen = document.getElementById('btnGenerate');
+      btnGen.disabled = true;
+      btnGen.classList.add('opacity-50');
+
+      const systemPrompt = `Anda adalah seorang ahli pendidikan dan penyusun jurnal refleksi pembelajaran guru profesional di Indonesia. 
+Tugas Anda adalah merubah poin-poin catatan kasar guru menjadi narasi paragraf utuh yang formal, baku, santun, dan bernuansa pedagogis tinggi.
+
+Petunjuk Khusus Bagian Kendala & Pemecahan Masalah:
+- JANGAN HANYA MENYALIN ULANG KETIKAN/POIN KHUSUS DARI GURU.
+- Kembangkan poin kendala dan solusi tersebut menjadi narasi paragraf mengalir yang rapi, utuh, dan profesional.
+- Gunakan terminologi pendidikan baku seperti: "pendekatan individual", "diferensiasi proses", "manajemen alokasi waktu", "pembimbingan intensif", "penataan dinamika kelompok".
+
+Format Output JSON persis seperti berikut:
+{
+  "ringkasanAktivitas": "Paragraf narasi rinci tentang metode dan alur KBM...",
+  "refleksiEvaluasi": "Paragraf evaluasi pedagogis ketercapaian pemahaman dan partisipasi siswa...",
+  "kendalaSolusi": "Paragraf naratif utuh dan profesional yang menguraikan kendala kelas beserta solusi/tindakan reflektif guru...",
+  "rencanaTindakLanjut": "Paragraf tindakan terstruktur untuk perbaikan/pengayaan..."
+}`;
+
+      const userQuery = `Konteks Kelas/Mapel: ${subjectClass}
+Waktu Pelaksanaan: ${timeSlot}
+Materi/Topik: ${topic}
+Poin Utama KBM:
+${keyNotes}
+
+Catatan Kendala & Solusi dari Guru:
+${challengeInput || 'Pembelajaran secara umum lancar, kendala minor ditangani dengan pendampingan langsung.'}`;
+
+      try {
+        const customApiKey = localStorage.getItem('gemini_api_key');
+        const apiKey = customApiKey || ""; 
+        
+        if (!apiKey) {
+          throw new Error('API Key belum diset');
+        }
+
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        const payload = {
+          contents: [{ parts: [{ text: userQuery }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                ringkasanAktivitas: { type: "STRING" },
+                refleksiEvaluasi: { type: "STRING" },
+                kendalaSolusi: { type: "STRING" },
+                rencanaTindakLanjut: { type: "STRING" }
+              },
+              propertyOrdering: ["ringkasanAktivitas", "refleksiEvaluasi", "kendalaSolusi", "rencanaTindakLanjut"]
+            }
+          }
+        };
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (jsonText) {
+          const result = JSON.parse(jsonText);
+          
+          document.getElementById('outSummary').innerText = result.ringkasanAktivitas;
+          document.getElementById('outReflection').innerText = result.refleksiEvaluasi;
+          document.getElementById('outChallenges').innerText = result.kendalaSolusi;
+          document.getElementById('outFollowUp').innerText = result.rencanaTindakLanjut;
+
+          showToast('Jurnal AI berhasil disusun dengan narasi profesional!');
+        } else {
+          throw new Error('Respon AI kosong.');
+        }
+
+      } catch (err) {
+        console.warn("AI API fallback triggered:", err.message);
+        fallbackExpandJournal(keyNotes, challengeInput, topic, subjectClass, timeSlot);
+        showToast('Jurnal disusun menggunakan generator offline.', 'info');
+      } finally {
+        loadingOverlay.classList.add('hidden');
+        btnGen.disabled = false;
+        btnGen.classList.remove('opacity-50');
+      }
+    }
+
+    // Offline Fallback Generator
+    function fallbackExpandJournal(keyNotes, challengeInput, topic, subjectClass, timeSlot) {
+      document.getElementById('outSummary').innerText = 
+        `Pada hari ini telah dilaksanakan kegiatan belajar mengajar untuk mata pelajaran ${subjectClass} pada jam pelaksanaan ${timeSlot} dengan materi pokok "${topic}". Proses pembelajaran diselenggarakan secara terstruktur melalui pendekatan kontekstual dan aktivitas interaktif. Secara umum alur kegiatan pembelajaran mencakup eksplorasi konsep, diskusi kelompok, dan konfirmasi pemahaman bersama peserta didik.`;
+      
+      document.getElementById('outReflection').innerText = 
+        `Berdasarkan pengamatan sepanjang proses KBM, tingkat partisipasi dan rasa ingin tahu peserta didik berada pada kategori sangat baik. Sebagian besar siswa mampu mengartikulasikan pemahaman materi ${topic} dengan percaya diri, serta menunjukkan kerja sama yang efektif dalam menyelesaikan tugas kelompok yang diberikan oleh guru.`;
+
+      const cleanChallenge = challengeInput.replace(/[-*]/g, '').trim();
+      if (cleanChallenge) {
+        document.getElementById('outChallenges').innerText = 
+          `Dalam dinamika pelaksanaan pembelajaran di kelas, dijumpai beberapa dinamika teknis yaitu: ${cleanChallenge}. Menanggapi hal tersebut, guru secara responsif mengambil langkah perbaikan di tempat (onsite intervention) dengan memberikan bimbingan individual, melakukan penataan ulang peran kelompok, serta mengarahkan siswa agar kembali fokus pada alur kerja pembelajaran.`;
+      } else {
+        document.getElementById('outChallenges').innerText = 
+          `Selama proses pembelajaran berlangsung, tidak ditemukan kendala teknis maupun prinsipil yang berarti. Kendala minor berupa perbedaan kecepatan belajar antar siswa berhasil diantisipasi melalui bimbingan perorangan dan strategi tutur sebaya dalam kelompok.`;
+      }
+
+      document.getElementById('outFollowUp').innerText = 
+        `Sebagai langkah tindak lanjut (RTL), guru akan melakukan reviu singkat pada awal pertemuan berikutnya untuk menguatkan pemahaman materi ${topic}, serta menyiapkan lembar kerja pengayaan bagi peserta didik yang memerlukan tantangan belajar lebih lanjut.`;
+    }
+
+    // PDF Export Function
+    function exportToPDF() {
+      const element = document.getElementById('export-preview');
+      const teacherName = document.getElementById('teacherName').value || 'Guru';
+      const topic = document.getElementById('topic').value || 'Jurnal';
+      
+      const opt = {
+        margin:       [0.5, 0.5, 0.5, 0.5],
+        filename:     `Jurnal_Belajar_${teacherName.replace(/\s+/g, '_')}_${topic.replace(/\s+/g, '_')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      showToast('Memproses unduhan PDF...');
+      html2pdf().set(opt).from(element).save().then(() => {
+        showToast('File PDF berhasil diunduh!');
+      });
+    }
+
+    // DOCX Export Function
+    async function exportToWord() {
+      try {
+        showToast('Membuat dokumen Word (.docx)...');
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType } = window.docx;
+
+        const school = document.getElementById('outSchool').innerText;
+        const teacher = document.getElementById('outTeacher').innerText;
+        const subjectClass = document.getElementById('outSubjectClass').innerText;
+        const timeSlot = document.getElementById('outTimeSlot').innerText;
+        const dateStr = document.getElementById('outDate').innerText;
+        const topic = document.getElementById('outTopic').innerText;
+
+        const summary = document.getElementById('outSummary').innerText;
+        const reflection = document.getElementById('outReflection').innerText;
+        const challenges = document.getElementById('outChallenges').innerText;
+        const followUp = document.getElementById('outFollowUp').innerText;
+
+        const children = [];
+
+        // Clean Centered Word Header (NO LOGO)
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: school, bold: true, size: 28, color: "111827" }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: "JURNAL REFLEKSI DAN CATATAN HARIAN PEMBELAJARAN GURU", bold: true, size: 20, color: "374151" }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spaceAfter: 300,
+            children: [
+              new TextRun({ text: "Aplikasi dibuat oleh: Yudho Wiratama, S.Pd.", italic: true, size: 18, color: "6B7280" }),
+            ],
+          })
+        );
+
+        // Metadata Table
+        const metaTable = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Nama Guru: ", bold: true }), new TextRun(teacher)] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Tanggal KBM: ", bold: true }), new TextRun(dateStr)] })] }),
+              ],
+            }),
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Kelas/Mapel: ", bold: true }), new TextRun(subjectClass)] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Waktu Pelaksanaan: ", bold: true }), new TextRun(timeSlot)] })] }),
+              ],
+            }),
+            new TableRow({
+              children: [
+                new TableCell({ columnSpan: 2, children: [new Paragraph({ children: [new TextRun({ text: "Topik/Materi: ", bold: true }), new TextRun(topic)] })] }),
+              ],
+            }),
+          ],
+        });
+        children.push(metaTable);
+        children.push(new Paragraph({ spaceAfter: 300 }));
+
+        // Section Helper with Justified Text
+        const addSection = (num, title, textContent) => {
+          children.push(
+            new Paragraph({
+              heading: HeadingLevel.HEADING_3,
+              spaceBefore: 200,
+              spaceAfter: 100,
+              alignment: AlignmentType.LEFT,
+              children: [
+                new TextRun({ text: `${num}. ${title}`, bold: true, size: 22, color: "15803D" }),
+              ],
+            }),
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spaceAfter: 200,
+              children: [
+                new TextRun({ text: textContent, size: 20 }),
+              ],
+            })
+          );
+        };
+
+        addSection("1", "Ringkasan Aktivitas Pembelajaran", summary);
+        addSection("2", "Refleksi & Evaluasi Proses Belajar", reflection);
+        addSection("3", "Kendala & Pemecahan Masalah", challenges);
+        addSection("4", "Rencana Tindak Lanjut (RTL)", followUp);
+
+        // Photo Export to Word
+        if (currentPhotoBase64) {
+          try {
+            const base64Data = currentPhotoBase64.split(',')[1];
+            const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+            
+            children.push(
+              new Paragraph({
+                heading: HeadingLevel.HEADING_3,
+                spaceBefore: 200,
+                spaceAfter: 100,
+                children: [new TextRun({ text: "5. Dokumentasi Kegiatan Pembelajaran", bold: true, size: 22, color: "15803D" })],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new ImageRun({
+                    data: imageBuffer,
+                    transformation: { width: 350, height: 230 },
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spaceAfter: 300,
+                children: [new TextRun({ text: document.getElementById('outCaption').innerText, italic: true, size: 18 })]
+              })
+            );
+          } catch(e) {
+            console.error("Gagal menyisipkan foto ke DOCX:", e);
+          }
+        }
+
+        const doc = new Document({
+          sections: [{
+            properties: {},
+            children: children,
+          }],
+        });
+
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `Jurnal_Belajar_${teacher.replace(/\s+/g, '_')}.docx`);
+        showToast('Dokumen Word (.docx) berhasil diunduh!');
+
+      } catch (err) {
+        console.error("DOCX Export Error:", err);
+        showToast('Gagal mengekspor Word. Gunakan ekspor PDF.', 'error');
+      }
+    }
+
+    // Save & Load LocalStorage
+    function saveJournalToStorage() {
+      const journalObj = {
+        id: Date.now(),
+        date: document.getElementById('journalDate').value,
+        teacher: document.getElementById('teacherName').value,
+        school: document.getElementById('schoolName').value,
+        subjectClass: document.getElementById('subjectClass').value,
+        timeSlot: document.getElementById('timeSlot').value,
+        topic: document.getElementById('topic').value,
+        summary: document.getElementById('outSummary').innerText,
+        reflection: document.getElementById('outReflection').innerText,
+        challenges: document.getElementById('outChallenges').innerText,
+        followUp: document.getElementById('outFollowUp').innerText,
+        photo: currentPhotoBase64,
+        caption: document.getElementById('photoCaption').value
+      };
+
+      journalHistory.unshift(journalObj);
+      localStorage.setItem('jurnal_guru_history', JSON.stringify(journalHistory));
+      renderHistory();
+      showToast('Jurnal berhasil disimpan ke Riwayat!');
+    }
+
+    function loadHistoryFromStorage() {
+      const saved = localStorage.getItem('jurnal_guru_history');
+      if (saved) {
+        try {
+          journalHistory = JSON.parse(saved);
+          renderHistory();
+        } catch(e) {
+          journalHistory = [];
+        }
+      }
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      document.getElementById('historyCount').innerText = journalHistory.length;
+
+      if (journalHistory.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 italic text-center py-4">Belum ada jurnal tersimpan.</p>';
+        return;
+      }
+
+      container.innerHTML = journalHistory.map((item, index) => `
+        <div class="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition flex items-center justify-between">
+          <div class="cursor-pointer flex-1 mr-2 overflow-hidden" onclick="loadJournalFromHistory(${index})">
+            <h4 class="font-semibold text-slate-800 truncate">${item.topic || 'Tanpa Judul'}</h4>
+            <p class="text-[11px] text-slate-500">${item.subjectClass} • ${item.timeSlot || '-'} • ${item.date}</p>
+          </div>
+          <button onclick="deleteHistoryItem(${index})" class="text-slate-400 hover:text-red-600 p-1 rounded transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function loadJournalFromHistory(index) {
+      const item = journalHistory[index];
+      if (!item) return;
+
+      document.getElementById('teacherName').value = item.teacher || '';
+      document.getElementById('schoolName').value = item.school || '';
+      document.getElementById('subjectClass').value = item.subjectClass || '';
+      document.getElementById('timeSlot').value = item.timeSlot || '';
+      document.getElementById('topic').value = item.topic || '';
+      document.getElementById('journalDate').value = item.date || '';
+
+      document.getElementById('outTeacher').innerText = item.teacher || '-';
+      document.getElementById('outSchool').innerText = item.school || 'SD NEGERI 1 GANTUNG';
+      document.getElementById('outSubjectClass').innerText = item.subjectClass || '-';
+      document.getElementById('outTimeSlot').innerText = item.timeSlot || '-';
+      document.getElementById('outTopic').innerText = item.topic || '-';
+
+      document.getElementById('outSummary').innerText = item.summary || '';
+      document.getElementById('outReflection').innerText = item.reflection || '';
+      document.getElementById('outChallenges').innerText = item.challenges || '';
+      document.getElementById('outFollowUp').innerText = item.followUp || '';
+
+      if (item.photo) {
+        currentPhotoBase64 = item.photo;
+        document.getElementById('outPhoto').src = item.photo;
+        document.getElementById('outPhotoSection').classList.remove('hidden');
+        document.getElementById('outCaption').innerText = item.caption || '';
+      } else {
+        removePhoto();
+      }
+
+      updateOutputDate(item.date);
+      showToast('Jurnal dimuat dari Riwayat!');
+    }
+
+    function deleteHistoryItem(index) {
+      journalHistory.splice(index, 1);
+      localStorage.setItem('jurnal_guru_history', JSON.stringify(journalHistory));
+      renderHistory();
+      showToast('Item berhasil dihapus', 'info');
+    }
+
+    function createNewJournal() {
+      document.getElementById('journal-form').reset();
+      document.getElementById('outSummary').innerText = 'Silakan isi formulir di sebelah kiri dan klik "Buat Jurnal Otomatis dengan AI".';
+      document.getElementById('outReflection').innerText = 'Hasil analisis ketercapaian tujuan pembelajaran akan ditampilkan di sini.';
+      document.getElementById('outChallenges').innerText = 'Identifikasi hambatan dalam kelas serta langkah penanganan.';
+      document.getElementById('outFollowUp').innerText = 'Langkah perbaikan atau pengayaan.';
+      document.getElementById('outTimeSlot').innerText = '-';
+      removePhoto();
+      showToast('Formulir direset untuk jurnal baru.');
+    }
+
+    // Notification Toast Helper
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+
+      toastMsg.innerText = message;
+      
+      if (type === 'error') {
+        toast.className = "fixed bottom-5 right-5 bg-red-800 text-white px-4 py-3 rounded-xl shadow-lg transition-all transform z-50 text-sm flex items-center space-x-2";
+      } else if (type === 'info') {
+        toast.className = "fixed bottom-5 right-5 bg-blue-800 text-white px-4 py-3 rounded-xl shadow-lg transition-all transform z-50 text-sm flex items-center space-x-2";
+      } else {
+        toast.className = "fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg transition-all transform z-50 text-sm flex items-center space-x-2";
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
